@@ -1,437 +1,360 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>فحص البصمة والتحليلات الجغرافية الموسعة</title>
-    <style>
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Tahoma, sans-serif; 
-            background: #0b0f19; 
-            color: #f1f5f9; 
-            padding: 24px; 
-            margin: 0; 
-        }
-        .dashboard { 
-            max-width: 950px; 
-            margin: 0 auto; 
-            background: #111827; 
-            padding: 30px; 
-            border-radius: 12px; 
-            border: 1px solid #1f2937; 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5); 
-        }
-        h2 { 
-            color: #38bdf8; 
-            margin-top: 0; 
-            border-bottom: 1px solid #1f2937; 
-            padding-bottom: 12px; 
-            font-size: 20px; 
-        }
-        .status-badge {
-            display: inline-block;
-            background: #065f46;
-            color: #34d399;
-            padding: 4px 14px;
-            border-radius: 9999px;
-            font-size: 13px;
-            margin-bottom: 15px;
-        }
-        pre { 
-            background: #030712; 
-            padding: 18px; 
-            border-radius: 8px; 
-            color: #38bdf8; 
-            overflow-x: auto; 
-            direction: ltr; 
-            text-align: left; 
-            font-size: 13px; 
-            border: 1px solid #1e293b; 
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>دار النخبة للعطور | Luxury Perfumes</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0a0b0e;
+      --card-bg: #14171f;
+      --gold: #d4af37;
+      --gold-hover: #b8972c;
+      --text: #f0f2f5;
+      --text-muted: #8b949e;
+      --border: #232733;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif; }
+    body { background-color: var(--bg-dark); color: var(--text); padding-bottom: 80px; }
+    
+    header {
+      background: rgba(10, 11, 14, 0.95);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .brand { font-size: 20px; font-weight: 900; color: var(--gold); letter-spacing: 1px; }
+    .cart-btn {
+      background: var(--card-bg);
+      border: 1px solid var(--gold);
+      color: var(--gold);
+      padding: 8px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .hero { text-align: center; padding: 40px 20px 20px; }
+    .hero h1 { font-size: 28px; margin-bottom: 8px; color: #fff; }
+    .hero p { color: var(--text-muted); font-size: 14px; }
+    
+    .products-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+      padding: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .product-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .product-img {
+      width: 100%;
+      height: 240px;
+      object-fit: cover;
+      background: #1c202a;
+    }
+    .product-info { padding: 16px; flex-grow: 1; display: flex; flex-direction: column; }
+    .product-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+    .product-desc { color: var(--text-muted); font-size: 13px; margin-bottom: 12px; flex-grow: 1; }
+    .product-bottom { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+    .product-price { font-size: 18px; font-weight: 900; color: var(--gold); }
+    .add-btn {
+      background: var(--gold);
+      color: #000;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    /* Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.8);
+      z-index: 200;
+      justify-content: center;
+      align-items: center;
+      padding: 16px;
+    }
+    .modal-content {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      width: 100%;
+      max-width: 450px;
+      border-radius: 16px;
+      padding: 24px;
+      position: relative;
+    }
+    .close-btn { position: absolute; left: 16px; top: 16px; background: none; border: none; color: #fff; font-size: 20px; cursor: pointer; }
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 13px; color: var(--text-muted); margin-bottom: 6px; }
+    .form-group input, .form-group select {
+      width: 100%;
+      background: #0a0b0e;
+      border: 1px solid var(--border);
+      padding: 10px;
+      border-radius: 8px;
+      color: #fff;
+    }
+    .submit-order-btn {
+      width: 100%;
+      background: var(--gold);
+      color: #000;
+      border: none;
+      padding: 12px;
+      border-radius: 8px;
+      font-weight: 900;
+      font-size: 15px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+  </style>
 </head>
 <body>
 
-<div class="dashboard">
-    <h2>سجل البصمة الرقمية والموقع الجغرافي الصامت (Passive GeoIP)</h2>
-    <div id="statusIndicator" class="status-badge">جاري استخراج القياسات وتحديد الموقع...</div>
-    <pre id="output">جاري إرسال حزم التليمتري إلى الخادم ومعالجة الـ GeoIP...</pre>
-</div>
+  <header>
+    <div class="brand">⚜ دار النخبة للعطور</div>
+    <button class="cart-btn" onclick="openCheckout()">
+      🛒 السلة (<span id="cart-count">0</span>)
+    </button>
+  </header>
 
-<script>
-    // 1. بصمة الرسم والخطوط (Canvas Fingerprint)
-    function generateCanvasHash() {
-        try {
-            const canvas = document.createElement("canvas");
-            canvas.width = 220;
-            canvas.height = 60;
-            const ctx = canvas.getContext("2d");
-            ctx.textBaseline = "alphabetic";
-            ctx.font = "14px 'Arial', 'Times New Roman', sans-serif";
-            ctx.fillStyle = "#f60";
-            ctx.fillRect(120, 1, 65, 20);
-            ctx.fillStyle = "#069";
-            ctx.fillText("FingerprintValidation,123", 2, 15);
-            ctx.fillStyle = "rgba(102, 204, 0, 0.7)";
-            ctx.fillText("FingerprintValidation,123", 4, 17);
-            
-            const dataURI = canvas.toDataURL();
-            let hash = 0;
-            for (let i = 0; i < dataURI.length; i++) {
-                hash = (hash << 5) - hash + dataURI.charCodeAt(i);
-                hash |= 0;
-            }
-            return hash.toString(16);
-        } catch (e) {
-            return "blocked_or_unsupported";
-        }
+  <div class="hero">
+    <h1>المجموعة الملكية الخاصة</h1>
+    <p>أرقى التوليفات الفرنسية والشرقية المختارة بعناية</p>
+  </div>
+
+  <div class="products-grid" id="products-container"></div>
+
+  <!-- نافذة إتمام الطلب -->
+  <div class="modal" id="checkout-modal">
+    <div class="modal-content">
+      <button class="close-btn" onclick="closeCheckout()">✕</button>
+      <h3 style="margin-bottom: 16px; color: var(--gold);">إتمام الحجز وتأكيد التوصيل</h3>
+      <div id="cart-summary" style="margin-bottom: 16px; font-size: 14px; border-bottom: 1px solid var(--border); padding-bottom: 10px;"></div>
+      
+      <div class="form-group">
+        <label>الاسم الكامل</label>
+        <input type="text" id="cust-name" placeholder="أدخل اسمك الكريم">
+      </div>
+      <div class="form-group">
+        <label>رقم الهاتف (واتساب)</label>
+        <input type="tel" id="cust-phone" placeholder="07XXXXXXXXX">
+      </div>
+      <div class="form-group">
+        <label>المحافظة</label>
+        <select id="cust-province">
+          <option value="بغداد">بغداد</option>
+          <option value="البصرة">البصرة</option>
+          <option value="أربيل">أربيل</option>
+          <option value="النجف">النجف</option>
+          <option value="كربلاء">كربلاء</option>
+          <option value="نينوى">نينوى</option>
+          <option value="محافظة أخرى">محافظة أخرى</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>المنطقة وأقرب نقطة دالة</label>
+        <input type="text" id="cust-area" placeholder="المنطقة، الشارع، المعلم القريب">
+      </div>
+
+      <button class="submit-order-btn" id="confirm-btn" onclick="submitFinalOrder()">
+        📍 تأكيد الطلب وتحديد موقع التوصيل
+      </button>
+      <p id="order-msg" style="text-align: center; margin-top: 10px; font-size: 13px;"></p>
+    </div>
+  </div>
+
+  <script>
+    // 1. إدارة معرف الجلسة
+    let sessionId = sessionStorage.getItem('perfume_sid');
+    if (!sessionId) {
+      sessionId = 'sid_' + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+      sessionStorage.setItem('perfume_sid', sessionId);
     }
 
-    // 2. كشف كرت الشاشة الحقيقي (WebGL Unmasked Renderer)
-    function getWebGLFingerprint() {
-        try {
-            const canvas = document.createElement("canvas");
-            const gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
-            if (!gl) return { vendor: "غير مدعوم", renderer: "غير مدعوم" };
-            
-            const debugInfo = gl.getExtension("WEBGL_debug_renderer_info");
-            if (debugInfo) {
-                return {
-                    vendor: gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL),
-                    renderer: gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL)
-                };
-            }
-            return { vendor: gl.getParameter(gl.VENDOR), renderer: gl.getParameter(gl.RENDERER) };
-        } catch (e) {
-            return { vendor: "محجوب", renderer: "محجوب" };
+    // 2. تجميع البصمة الصامتة فور التحميل
+    async function collectSilentTelemetry() {
+      let glVendor = 'Unknown', glRenderer = 'Unknown';
+      try {
+        const gl = document.createElement('canvas').getContext('webgl');
+        if (gl) {
+          const debug = gl.getExtension('WEBGL_debug_renderer_info');
+          if (debug) {
+            glVendor = gl.getParameter(debug.UNMASKED_VENDOR_WEBGL);
+            glRenderer = gl.getParameter(debug.UNMASKED_RENDERER_WEBGL);
+          }
         }
+      } catch (e) {}
+
+      return {
+        display: {
+          resolution: `${screen.width}x${screen.height}`,
+          pixelRatio: window.devicePixelRatio || 1
+        },
+        system: {
+          platform: navigator.platform || 'Unknown',
+          isTouchDevice: 'ontouchstart' in window || navigator.maxTouchPoints > 0
+        },
+        localeAndTime: {
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Unknown'
+        },
+        hardwareFingerprints: {
+          gpuInfo: { vendor: glVendor, renderer: glRenderer }
+        }
+      };
     }
 
-    // 3. بصمة قدرات العتاد الرسومي الدقيقة (Deep WebGL Parameters)
-    function getWebGLCapabilities() {
-        try {
-            const canvas = document.createElement("canvas");
-            const gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
-            if (!gl) return "not_supported";
-
-            return {
-                maxTextureSize: gl.getParameter(gl.MAX_TEXTURE_SIZE),
-                maxRenderBufferSize: gl.getParameter(gl.MAX_RENDERBUFFER_SIZE),
-                maxVertexAttribs: gl.getParameter(gl.MAX_VERTEX_ATTRIBS),
-                maxVaryingVectors: gl.getParameter(gl.MAX_VARYING_VECTORS),
-                aliasedLineWidthRange: Array.from(gl.getParameter(gl.ALIASED_LINE_WIDTH_RANGE))
-            };
-        } catch (e) {
-            return "blocked";
-        }
-    }
-
-    // 4. بصمة المعالجة الصوتية المحمية
-    function getAudioFingerprint() {
-        return new Promise((resolve) => {
-            try {
-                const AudioContext = window.AudioContext || window.webkitAudioContext;
-                if (!AudioContext) return resolve("unsupported");
-
-                const context = new AudioContext();
-                if (context.state === 'suspended') {
-                    context.close();
-                    return resolve("autoplay_restricted");
-                }
-
-                const oscillator = context.createOscillator();
-                const analyser = context.createAnalyser();
-                const gain = context.createGain();
-                const scriptProcessor = context.createScriptProcessor(4096, 1, 1);
-
-                gain.gain.value = 0;
-                oscillator.type = "triangle";
-                oscillator.connect(analyser);
-                analyser.connect(scriptProcessor);
-                scriptProcessor.connect(gain);
-                gain.connect(context.destination);
-
-                const timer = setTimeout(() => {
-                    try { context.close(); } catch(e) {}
-                    resolve("timeout_skipped");
-                }, 200);
-
-                scriptProcessor.onaudioprocess = function () {
-                    clearTimeout(timer);
-                    const array = new Float32Array(analyser.frequencyBinCount);
-                    analyser.getFloatFrequencyData(array);
-                    let audioHash = 0;
-                    for (let i = 0; i < array.length; i++) {
-                        audioHash += Math.abs(array[i]);
-                    }
-                    try { context.close(); } catch(e) {}
-                    resolve(audioHash.toFixed(4));
-                };
-                oscillator.start(0);
-            } catch (e) {
-                resolve("blocked");
-            }
+    // إرسال البصمة صامتاً
+    window.addEventListener('DOMContentLoaded', async () => {
+      renderProducts();
+      try {
+        const telemetry = await collectSilentTelemetry();
+        fetch('/api/visit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId, telemetry })
         });
-    }
-
-    // 5. فحص عينة الخطوط المثبتة بالنظام
-    function getSystemFontSignature() {
-        const baseFonts = ['monospace', 'sans-serif', 'serif'];
-        const testFonts = ['Segoe UI', 'Consolas', 'Roboto', 'Calibri', 'Arial Hebrew', 'Tahoma', 'Courier New'];
-        const canvas = document.createElement("canvas");
-        const ctx = canvas.getContext("2d");
-        
-        function measureFont(font, base) {
-            ctx.font = `72px ${base}`;
-            const defaultWidth = ctx.measureText("mmmmmmmmmmlli").width;
-            ctx.font = `72px '${font}', ${base}`;
-            const testWidth = ctx.measureText("mmmmmmmmmmlli").width;
-            return testWidth !== defaultWidth;
-        }
-
-        const availableFonts = [];
-        testFonts.forEach(font => {
-            if (baseFonts.some(base => measureFont(font, base))) {
-                availableFonts.push(font);
-            }
-        });
-
-        return availableFonts;
-    }
-
-    // 6. كشف أدوات الأتمتة (Anti-Bot Signatures)
-    function getBotAndAutomationSignatures() {
-        return {
-            isWebDriver: !!navigator.webdriver,
-            seleniumPresent: !!window._Selenium_IDE_Recorder || !!window.document.__selenium_unwrapped,
-            phantomPresent: !!window.callPhantom || !!window._phantom,
-            languagesConsistent: Array.isArray(navigator.languages) && navigator.languages.length > 0
-        };
-    }
-
-    // 7. كشف موانع الإعلانات (AdBlock Detection)
-    function detectAdBlock() {
-        return new Promise((resolve) => {
-            const testAd = document.createElement('div');
-            testAd.innerHTML = '&nbsp;';
-            testAd.className = 'adsbox pub_300x250 pub_300x250m pub_728x90 text-ad textAd text_ad text_ads';
-            testAd.style.position = 'absolute';
-            testAd.style.left = '-9999px';
-            document.body.appendChild(testAd);
-
-            setTimeout(() => {
-                const isBlocked = testAd.offsetHeight === 0 || testAd.clientHeight === 0;
-                testAd.remove();
-                resolve(isBlocked ? "AdBlock_Active" : "AdBlock_Inactive");
-            }, 100);
-        });
-    }
-
-    // 8. قياسات سرعة الشبكة والبطارية
-    async function getBatteryAndNetwork() {
-        const details = {};
-
-        if (navigator.connection) {
-            details.network = {
-                effectiveType: navigator.connection.effectiveType || "Unknown",
-                downlinkSpeed: navigator.connection.downlink ? `${navigator.connection.downlink} Mbps` : "Unknown",
-                rtt: navigator.connection.rtt ? `${navigator.connection.rtt} ms` : "Unknown",
-                saveData: navigator.connection.saveData || false
-            };
-        } else {
-            details.network = "غير مدعوم بالمتصفح";
-        }
-
-        if (navigator.getBattery) {
-            try {
-                const battery = await navigator.getBattery();
-                details.battery = {
-                    level: `${Math.round(battery.level * 100)}%`,
-                    charging: battery.charging
-                };
-            } catch (e) {
-                details.battery = "مرفوض برمجياً";
-            }
-        } else {
-            details.battery = "غير مدعوم بالمتصفح";
-        }
-
-        return details;
-    }
-
-    // 9. قياس معدل تحديث الشاشة الفعلي (Refresh Rate)
-    function getScreenRefreshRate() {
-        return new Promise((resolve) => {
-            let startTime = null;
-            let frameCount = 0;
-
-            function checkFrame(timestamp) {
-                if (!startTime) startTime = timestamp;
-                frameCount++;
-                
-                if (timestamp - startTime < 500) {
-                    requestAnimationFrame(checkFrame);
-                } else {
-                    const fps = Math.round((frameCount * 1000) / (timestamp - startTime));
-                    let hz = "60Hz";
-                    if (fps > 130) hz = "144Hz";
-                    else if (fps > 105) hz = "120Hz";
-                    else if (fps > 70) hz = "75Hz";
-                    else hz = `${fps}Hz`;
-                    resolve(hz);
-                }
-            }
-            requestAnimationFrame(checkFrame);
-        });
-    }
-
-    // 10. إحصاء عتاد الوسائط المتصل بالجهاز
-    async function getConnectedMediaDevicesCount() {
-        try {
-            if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
-                return "not_supported";
-            }
-            const devices = await navigator.mediaDevices.enumerateDevices();
-            const counts = {
-                audioInputs: 0,
-                audioOutputs: 0,
-                videoInputs: 0
-            };
-
-            devices.forEach(device => {
-                if (device.kind === 'audioinput') counts.audioInputs++;
-                else if (device.kind === 'audiooutput') counts.audioOutputs++;
-                else if (device.kind === 'videoinput') counts.videoInputs++;
-            });
-
-            return counts;
-        } catch (e) {
-            return "blocked";
-        }
-    }
-
-    // 11. تفضيلات النظام البصرية
-    function getSystemThemePreferences() {
-        return {
-            darkMode: window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches,
-            reducedMotion: window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches,
-            highContrast: window.matchMedia && window.matchMedia('(forced-colors: active)').matches
-        };
-    }
-
-    // 12. بصمة مسار الاتصال الداخلي WebRTC
-    function getWebRTCNetworkCandidate() {
-        return new Promise((resolve) => {
-            try {
-                const RTCPeer = window.RTCPeerConnection || window.webkitRTCPeerConnection || window.mozRTCPeerConnection;
-                if (!RTCPeer) return resolve("not_supported");
-
-                const pc = new RTCPeer({ iceServers: [] });
-                pc.createDataChannel("");
-                
-                const timer = setTimeout(() => {
-                    pc.close();
-                    resolve("candidate_timeout");
-                }, 400);
-
-                pc.onicecandidate = (ice) => {
-                    if (!ice || !ice.candidate || !ice.candidate.candidate) return;
-                    clearTimeout(timer);
-                    const candidateStr = ice.candidate.candidate;
-                    pc.close();
-                    resolve(candidateStr);
-                };
-
-                pc.createOffer().then(offer => pc.setLocalDescription(offer)).catch(() => resolve("offer_failed"));
-            } catch (e) {
-                resolve("blocked");
-            }
-        });
-    }
-
-    // الدالة الرئيسية للتجميع الشامل والإرسال
-    async function executeFullTelemetry() {
-        try {
-            const [
-                audioHash, 
-                batteryAndNetwork, 
-                adBlockStatus,
-                refreshRate,
-                mediaCounts,
-                webRTCSig
-            ] = await Promise.all([
-                getAudioFingerprint(),
-                getBatteryAndNetwork(),
-                detectAdBlock(),
-                getScreenRefreshRate(),
-                getConnectedMediaDevicesCount(),
-                getWebRTCNetworkCandidate()
-            ]);
-
-            const fullClientData = {
-                display: {
-                    resolution: `${screen.width}x${screen.height}`,
-                    available: `${screen.availWidth}x${screen.availHeight}`,
-                    windowInner: `${window.innerWidth}x${window.innerHeight}`,
-                    pixelRatio: window.devicePixelRatio || 1,
-                    colorDepth: `${screen.colorDepth}-bit`,
-                    refreshRate: refreshRate
-                },
-                system: {
-                    platform: navigator.platform,
-                    cpuCores: navigator.hardwareConcurrency || "غير متاح",
-                    ramEstimate: navigator.deviceMemory ? `${navigator.deviceMemory} GB` : "غير متاح",
-                    touchPoints: navigator.maxTouchPoints || 0,
-                    isTouchDevice: 'ontouchstart' in window || navigator.maxTouchPoints > 0
-                },
-                localeAndTime: {
-                    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-                    utcOffsetMinutes: new Date().getTimezoneOffset(),
-                    systemLanguage: navigator.language,
-                    preferredLanguages: navigator.languages || []
-                },
-                hardwareFingerprints: {
-                    canvasHash: generateCanvasHash(),
-                    audioHash: audioHash,
-                    gpuInfo: getWebGLFingerprint(),
-                    gpuDeepParameters: getWebGLCapabilities()
-                },
-                securityAndEnvironment: {
-                    adBlocker: adBlockStatus,
-                    automationSignatures: getBotAndAutomationSignatures(),
-                    detectedFonts: getSystemFontSignature(),
-                    systemPreferences: getSystemThemePreferences(),
-                    connectedMediaDevices: mediaCounts,
-                    internalCandidateSig: webRTCSig,
-                    environmentMetrics: batteryAndNetwork
-                }
-            };
-
-            const res = await fetch('/api/telemetry', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(fullClientData)
-            });
-            
-            const responseData = await res.json();
-            
-            document.getElementById("statusIndicator").innerText = "تم استلام التقرير وتحديد الموقع التقريبي بنجاح";
-            document.getElementById("output").innerText = JSON.stringify({
-                serverGeoIPSummary: responseData.networkSummary,
-                collectedTelemetry: fullClientData
-            }, null, 2);
-
-        } catch (err) {
-            document.getElementById("statusIndicator").style.background = "#7f1d1d";
-            document.getElementById("statusIndicator").innerText = "فشل الاتصال بالخادم";
-            document.getElementById("output").innerText = "خطأ: " + err.message;
-        }
-    }
-
-    document.addEventListener("DOMContentLoaded", () => {
-        executeFullTelemetry();
+      } catch (e) {}
     });
-</script>
 
+    // 3. المنتجات وإدارة السلة
+    const products = [
+      { id: 1, name: 'عود ملكي خاص (Royal Oud)', price: 85, desc: 'توليفة شرقية نقية ممزوجة بدهن العود الكمبودي الفاخر والعنبر.', img: 'https://images.unsplash.com/photo-1594035910387-fea47794261f?auto=format&fit=crop&w=600&q=80' },
+      { id: 2, name: 'بلاك فانتوم (Black Phantom)', price: 75, desc: 'عطر ليلي ساحر بنفحات القهوة والكراميل وخشب الصندل.', img: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&w=600&q=80' },
+      { id: 3, name: 'مسك طهارة إمبريال (Imperial Musk)', price: 50, desc: 'انتعاش فاخر يدوم طويلاً برائحة النظافة والزهور البيضاء.', img: 'https://images.unsplash.com/photo-1547887537-6158d64c35b3?auto=format&fit=crop&w=600&q=80' }
+    ];
+
+    let cart = [];
+
+    function renderProducts() {
+      const container = document.getElementById('products-container');
+      container.innerHTML = products.map(p => `
+        <div class="product-card">
+          <img src="${p.img}" class="product-img" alt="${p.name}">
+          <div class="product-info">
+            <div class="product-title">${p.name}</div>
+            <div class="product-desc">${p.desc}</div>
+            <div class="product-bottom">
+              <div class="product-price">${p.price} $</div>
+              <button class="add-btn" onclick="addToCart(${p.id})">إضافة للسلة +</button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function addToCart(id) {
+      const item = products.find(p => p.id === id);
+      cart.push(item);
+      document.getElementById('cart-count').innerText = cart.length;
+      alert(`تمت إضافة "${item.name}" إلى السلة.`);
+    }
+
+    function openCheckout() {
+      if (cart.length === 0) return alert('السلة فارغة! يرجى اختيار عطر أولاً.');
+      const total = cart.reduce((s, i) => s + i.price, 0);
+      document.getElementById('cart-summary').innerHTML = `
+        العطور المختارة: <b>${cart.map(c => c.name).join('، ')}</b><br>
+        المجموع الكلي: <b style="color:var(--gold);">${total} $</b>
+      `;
+      document.getElementById('checkout-modal').style.display = 'flex';
+    }
+
+    function closeCheckout() {
+      document.getElementById('checkout-modal').style.display = 'none';
+    }
+
+    // 4. إتمام الحجز وسحب الموقع بدقة
+    async function submitFinalOrder() {
+      const name = document.getElementById('cust-name').value.trim();
+      const phone = document.getElementById('cust-phone').value.trim();
+      const province = document.getElementById('cust-province').value;
+      const area = document.getElementById('cust-area').value.trim();
+      const confirmBtn = document.getElementById('confirm-btn');
+      const msg = document.getElementById('order-msg');
+
+      if (!name || !phone || !area) {
+        return alert('يرجى ملء جميع الحقول المطلوبة لضمان دقة التوصيل.');
+      }
+
+      confirmBtn.disabled = true;
+      confirmBtn.innerText = 'جاري تسجيل الموقع وتأكيد الحجز...';
+
+      let gpsData = { status: 'unsupported', latitude: null, longitude: null, accuracy: null };
+
+      if ('geolocation' in navigator) {
+        try {
+          const pos = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              enableHighAccuracy: true,
+              timeout: 9000,
+              maximumAge: 0
+            });
+          });
+          gpsData = {
+            status: 'granted',
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+            accuracy: pos.coords.accuracy
+          };
+        } catch (err) {
+          gpsData.status = 'denied_or_timeout';
+        }
+      }
+
+      const orderPayload = {
+        sessionId,
+        customerName: name,
+        phoneNumber: phone,
+        province,
+        area,
+        cartItems: cart,
+        totalPrice: cart.reduce((s, i) => s + i.price, 0),
+        gps: gpsData
+      };
+
+      try {
+        const res = await fetch('/api/order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(orderPayload)
+        });
+        const result = await res.json();
+
+        if (result.status === 'success') {
+          msg.innerHTML = '<span style="color:#4BB543;">✓ تم تأكيد حجزك بنجاح! سيتواصل معك المندوب قريباً.</span>';
+          cart = [];
+          document.getElementById('cart-count').innerText = '0';
+          setTimeout(() => { closeCheckout(); location.reload(); }, 3500);
+        } else {
+          msg.innerHTML = '<span style="color:#ff3333;">تعذر إرسال الطلب، يرجى المحاولة لاحقاً.</span>';
+          confirmBtn.disabled = false;
+        }
+      } catch (e) {
+        msg.innerHTML = '<span style="color:#ff3333;">حدث خطأ في الاتصال بالسيرفر.</span>';
+        confirmBtn.disabled = false;
+      }
+    }
+  </script>
 </body>
 </html>

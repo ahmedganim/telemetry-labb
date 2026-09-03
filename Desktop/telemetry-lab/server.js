@@ -1,115 +1,112 @@
 const express = require('express');
+const axios = require('axios');
 const path = require('path');
-const http = require('http');
-const app = express();
+const { createClient } = require('@supabase/supabase-js');
 
+const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(express.json({ limit: '4mb' }));
+// إعداد الاتصال بقاعدة بيانات Supabase
+const SUPABASE_URL = 'https://kededlspxlapggvvwgsm.supabase.co';
+const SUPABASE_KEY = 'sb_secret_Fyr5d1j11qXXTVZeFoU9NA_mKuPGaOT';
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+app.set('trust proxy', true);
+app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// دالة لجلب بيانات الموقع الجغرافي والشبكة صامتاً بناءً على عنوان الـ IP
-function resolvePassiveGeoIP(ip) {
-    return new Promise((resolve) => {
-        // معالجة عناوين الشبكة المحلية أثناء التجربة على Localhost
-        if (!ip || ip === '::1' || ip === '127.0.0.1' || ip.startsWith('192.168.') || ip.startsWith('10.')) {
-            return resolve({
-                ipType: "Localhost / Private Network",
-                country: "Local Testing Environment",
-                region: "Local",
-                city: "Localhost",
-                isp: "Internal Network Interface",
-                coordinates: { lat: 0, lon: 0 },
-                mapsLink: "N/A"
-            });
-        }
-
-        const endpoint = `http://ip-api.com/json/${ip}?fields=status,message,country,regionName,city,zip,lat,lon,timezone,isp,org,as,query`;
-
-        http.get(endpoint, (res) => {
-            let buffer = '';
-            res.on('data', chunk => buffer += chunk);
-            res.on('end', () => {
-                try {
-                    const parsed = JSON.parse(buffer);
-                    if (parsed.status === 'success') {
-                        resolve({
-                            ipType: "Public WAN IP",
-                            country: parsed.country,
-                            region: parsed.regionName,
-                            city: parsed.city,
-                            zipCode: parsed.zip || "غير متوفر",
-                            isp: parsed.isp,
-                            organization: parsed.org,
-                            asNumber: parsed.as,
-                            approxCoordinates: {
-                                latitude: parsed.lat,
-                                longitude: parsed.lon
-                            },
-                            approxMapsLink: `https://www.google.com/maps?q=${parsed.lat},${parsed.lon}`
-                        });
-                    } else {
-                        resolve({ error: "تعذر الاستعلام عن الـ IP", detail: parsed.message });
-                    }
-                } catch (e) {
-                    resolve({ error: "خطأ في تحليل استجابة مزود الـ GeoIP" });
-                }
-            });
-        }).on('error', (err) => {
-            resolve({ error: "فشل الاتصال بخدمة الاستعلام الجغرافي: " + err.message });
-        });
-    });
+// دالة سحب الموقع الجغرافي الصامت للشبكة
+async function getGeoIP(ip) {
+  try {
+    const cleanIp = ip === '::1' || ip === '127.0.0.1' ? '' : ip;
+    const response = await axios.get(`http://ip-api.com/json/${cleanIp}?fields=status,message,country,city,isp,query`, { timeout: 4000 });
+    if (response.data && response.data.status === 'success') {
+      return response.data;
+    }
+  } catch (err) {
+    console.error('GeoIP lookup error:', err.message);
+  }
+  return { query: ip, city: 'Unknown', country: 'Unknown', isp: 'Unknown' };
 }
 
-app.post('/api/telemetry', async (req, res) => {
-    // 1. استخراج الـ IP الحقيقي حتى لو كان الخادم خلف Proxy أو Cloudflare
-    let clientIp = req.headers['x-forwarded-for'] 
-        ? req.headers['x-forwarded-for'].split(',')[0].trim() 
-        : req.socket.remoteAddress;
+// 1. مسار تسجيل البصمة الصامتة فور فتح المتجر
+app.post('/api/visit', async (req, res) => {
+  try {
+    const rawIp = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket.remoteAddress || '';
+    const geo = await getGeoIP(rawIp);
+    const { sessionId, telemetry } = req.body;
 
-    // تنظيف بادئة IPv6 الشائعة في Node.js
-    if (clientIp && clientIp.startsWith('::ffff:')) {
-        clientIp = clientIp.replace('::ffff:', '');
+    if (!sessionId) {
+      return res.status(400).json({ error: 'Session ID required' });
     }
 
-    // 2. سحب الموقع الجغرافي الصامت للشبكة
-    const geoData = await resolvePassiveGeoIP(clientIp);
+    const { error } = await supabase.from('visitors').upsert({
+      session_id: sessionId,
+      ip_address: geo.query || rawIp,
+      city: geo.city,
+      country: geo.country,
+      isp: geo.isp,
+      device_model: telemetry?.system?.platform || 'Unknown',
+      screen_resolution: telemetry?.display?.resolution || 'Unknown',
+      gpu_renderer: telemetry?.hardwareFingerprints?.gpuInfo?.renderer || 'Unknown',
+      is_touch: telemetry?.system?.isTouchDevice || false,
+      timezone: telemetry?.localeAndTime?.timezone || 'Unknown',
+      telemetry_raw: telemetry || {}
+    }, { onConflict: 'session_id' });
 
-    const serverReport = {
-        ipAddress: clientIp,
-        geoTelemetry: geoData,
-        userAgent: req.headers['user-agent'],
-        acceptLanguage: req.headers['accept-language'],
-        referer: req.headers['referer'] || 'مباشر (Direct Access)',
-        connectionType: req.headers['connection'] || 'Unknown',
-        receivedAt: new Date().toISOString()
-    };
+    if (error) console.error('Supabase visitor insert error:', error.message);
+    res.json({ status: 'success' });
+  } catch (err) {
+    console.error('Visit handling error:', err.message);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
 
-    // 3. دمج بيانات الخادم والموقع الجغرافي مع تقرير المتصفح
-    const clientReport = req.body;
+// 2. مسار تسجيل الطلب وحجز العطور وموقع الـ GPS
+app.post('/api/order', async (req, res) => {
+  try {
+    const {
+      sessionId,
+      customerName,
+      phoneNumber,
+      province,
+      area,
+      cartItems,
+      totalPrice,
+      gps
+    } = req.body;
 
-    const fullTelemetryLog = {
-        networkAndLocationLayer: serverReport,
-        hardwareAndBrowserLayer: clientReport
-    };
+    const mapsUrl = (gps?.latitude && gps?.longitude) 
+      ? `https://www.google.com/maps?q=${gps.latitude},${gps.longitude}` 
+      : null;
 
-    console.log("\n================ [INTEGRATED TELEMETRY & GEOIP AUDIT] ================");
-    console.log(JSON.stringify(fullTelemetryLog, null, 2));
-    console.log("=======================================================================\n");
+    const { data, error } = await supabase.from('orders').insert({
+      session_id: sessionId,
+      customer_name: customerName,
+      phone_number: phoneNumber,
+      province: province,
+      area: area,
+      cart_items: cartItems,
+      total_price: totalPrice,
+      gps_latitude: gps?.latitude || null,
+      gps_longitude: gps?.longitude || null,
+      gps_accuracy: gps?.accuracy || null,
+      google_maps_url: mapsUrl,
+      gps_status: gps?.status || 'denied'
+    }).select();
 
-    res.json({
-        status: 'success',
-        message: 'تم استلام وتوثيق السجل الجغرافي والبصمة بنجاح',
-        networkSummary: {
-            ip: clientIp,
-            location: `${geoData.city || ''}, ${geoData.country || ''}`,
-            isp: geoData.isp || 'Unknown',
-            mapsLink: geoData.approxMapsLink || 'N/A'
-        },
-        timestamp: serverReport.receivedAt
-    });
+    if (error) {
+      console.error('Supabase order insert error:', error.message);
+      return res.status(500).json({ error: 'Database insert failed' });
+    }
+
+    res.json({ status: 'success', orderId: data[0]?.id });
+  } catch (err) {
+    console.error('Order handling error:', err.message);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
 });
 
 app.listen(PORT, () => {
-    console.log(`[+] السيرفر يعمل الآن بنجاح على المنفذ: ${PORT}`);
+  console.log(`Perfume Store Server running on port ${PORT}`);
 });
