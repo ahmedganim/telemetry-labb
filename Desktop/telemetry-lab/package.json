@@ -1,13 +1,14 @@
 {
-  "name": "telemetry-lab",
+  "name": "perfume-store",
   "version": "1.0.0",
-  "description": "Comprehensive device telemetry and fingerprinting lab",
+  "description": "Luxury Perfume Store",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.115.0",
+    "@supabase/supabase-js": "^2.45.0",
+    "axios": "^1.7.0",
     "express": "^4.19.2"
   }
 }
