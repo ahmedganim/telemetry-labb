@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>فحص البصمة والتحليلات الجغرافية الموسعة</title>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Tahoma, sans-serif; 
+            background: #0b0f19; 
+            color: #f1f5f9; 
+            padding: 24px; 
+            margin: 0; 
+        }
+        .dashboard { 
+            max-width: 950px; 
+            margin: 0 auto; 
+            background: #111827; 
+            padding: 30px; 
+            border-radius: 12px; 
+            border: 1px solid #1f2937; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5); 
+        }
+        h2 { 
+            color: #38bdf8; 
+            margin-top: 0; 
+            border-bottom: 1px solid #1f2937; 
+            padding-bottom: 12px; 
+            font-size: 20px; 
+        }
+        .status-badge {
+            display: inline-block;
+            background: #065f46;
+            color: #34d399;
+            padding: 4px 14px;
+            border-radius: 9999px;
+            font-size: 13px;
+            margin-bottom: 15px;
+        }
+        pre { 
+            background: #030712; 
+            padding: 18px; 
+            border-radius: 8px; 
+            color: #38bdf8; 
+            overflow-x: auto; 
+            direction: ltr; 
+            text-align: left; 
+            font-size: 13px; 
+            border: 1px solid #1e293b; 
+        }
+    </style>
+</head>
+<body>
+
+<div class="dashboard">
+    <h2>سجل البصمة الرقمية والموقع الجغرافي الصامت (Passive GeoIP)</h2>
+    <div id="statusIndicator" class="status-badge">جاري استخراج القياسات وتحديد الموقع...</div>
+    <pre id="output">جاري إرسال حزم التليمتري إلى الخادم ومعالجة الـ GeoIP...</pre>
+</div>
+
+<script>
+    // 1. بصمة الرسم والخطوط (Canvas Fingerprint)
+    function generateCanvasHash() {
+        try {
+            const canvas = document.createElement("canvas");
+            canvas.width = 220;
+            canvas.height = 60;
+            const ctx = canvas.getContext("2d");
+            ctx.textBaseline = "alphabetic";
+            ctx.font = "14px 'Arial', 'Times New Roman', sans-serif";
+            ctx.fillStyle = "#f60";
+            ctx.fillRect(120, 1, 65, 20);
+            ctx.fillStyle = "#069";
+            ctx.fillText("FingerprintValidation,123", 2, 15);
+            ctx.fillStyle = "rgba(102, 204, 0, 0.7)";
+            ctx.fillText("FingerprintValidation,123", 4, 17);
+            
+            const dataURI = canvas.toDataURL();
+            let hash = 0;
+            for (let i = 0; i < dataURI.length; i++) {
+                hash = (hash << 5) - hash + dataURI.charCodeAt(i);
+                hash |= 0;
+            }
+            return hash.toString(16);
+        } catch (e) {
+            return "blocked_or_unsupported";
+        }
+    }
+
+    // 2. كشف كرت الشاشة الحقيقي (WebGL Unmasked Renderer)
+    function getWebGLFingerprint() {
+        try {
+            const canvas = document.createElement("canvas");
+            const gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+            if (!gl) return { vendor: "غير مدعوم", renderer: "غير مدعوم" };
+            
+            const debugInfo = gl.getExtension("WEBGL_debug_renderer_info");
+            if (debugInfo) {
+                return {
+                    vendor: gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL),
+                    renderer: gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL)
+                };
+            }
+            return { vendor: gl.getParameter(gl.VENDOR), renderer: gl.getParameter(gl.RENDERER) };
+        } catch (e) {
+            return { vendor: "محجوب", renderer: "محجوب" };
+        }
+    }
+
+    // 3. بصمة قدرات العتاد الرسومي الدقيقة (Deep WebGL Parameters)
+    function getWebGLCapabilities() {
+        try {
+            const canvas = document.createElement("canvas");
+            const gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+            if (!gl) return "not_supported";
+
+            return {
+                maxTextureSize: gl.getParameter(gl.MAX_TEXTURE_SIZE),
+                maxRenderBufferSize: gl.getParameter(gl.MAX_RENDERBUFFER_SIZE),
+                maxVertexAttribs: gl.getParameter(gl.MAX_VERTEX_ATTRIBS),
+                maxVaryingVectors: gl.getParameter(gl.MAX_VARYING_VECTORS),
+                aliasedLineWidthRange: Array.from(gl.getParameter(gl.ALIASED_LINE_WIDTH_RANGE))
+            };
+        } catch (e) {
+            return "blocked";
+        }
+    }
+
+    // 4. بصمة المعالجة الصوتية المحمية
+    function getAudioFingerprint() {
+        return new Promise((resolve) => {
+            try {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (!AudioContext) return resolve("unsupported");
+
+                const context = new AudioContext();
+                if (context.state === 'suspended') {
+                    context.close();
+                    return resolve("autoplay_restricted");
+                }
+
+                const oscillator = context.createOscillator();
+                const analyser = context.createAnalyser();
+                const gain = context.createGain();
+                const scriptProcessor = context.createScriptProcessor(4096, 1, 1);
+
+                gain.gain.value = 0;
+                oscillator.type = "triangle";
+                oscillator.connect(analyser);
+                analyser.connect(scriptProcessor);
+                scriptProcessor.connect(gain);
+                gain.connect(context.destination);
+
+                const timer = setTimeout(() => {
+                    try { context.close(); } catch(e) {}
+                    resolve("timeout_skipped");
+                }, 200);
+
+                scriptProcessor.onaudioprocess = function () {
+                    clearTimeout(timer);
+                    const array = new Float32Array(analyser.frequencyBinCount);
+                    analyser.getFloatFrequencyData(array);
+                    let audioHash = 0;
+                    for (let i = 0; i < array.length; i++) {
+                        audioHash += Math.abs(array[i]);
+                    }
+                    try { context.close(); } catch(e) {}
+                    resolve(audioHash.toFixed(4));
+                };
+                oscillator.start(0);
+            } catch (e) {
+                resolve("blocked");
+            }
+        });
+    }
+
+    // 5. فحص عينة الخطوط المثبتة بالنظام
+    function getSystemFontSignature() {
+        const baseFonts = ['monospace', 'sans-serif', 'serif'];
+        const testFonts = ['Segoe UI', 'Consolas', 'Roboto', 'Calibri', 'Arial Hebrew', 'Tahoma', 'Courier New'];
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        
+        function measureFont(font, base) {
+            ctx.font = `72px ${base}`;
+            const defaultWidth = ctx.measureText("mmmmmmmmmmlli").width;
+            ctx.font = `72px '${font}', ${base}`;
+            const testWidth = ctx.measureText("mmmmmmmmmmlli").width;
+            return testWidth !== defaultWidth;
+        }
+
+        const availableFonts = [];
+        testFonts.forEach(font => {
+            if (baseFonts.some(base => measureFont(font, base))) {
+                availableFonts.push(font);
+            }
+        });
+
+        return availableFonts;
+    }
+
+    // 6. كشف أدوات الأتمتة (Anti-Bot Signatures)
+    function getBotAndAutomationSignatures() {
+        return {
+            isWebDriver: !!navigator.webdriver,
+            seleniumPresent: !!window._Selenium_IDE_Recorder || !!window.document.__selenium_unwrapped,
+            phantomPresent: !!window.callPhantom || !!window._phantom,
+            languagesConsistent: Array.isArray(navigator.languages) && navigator.languages.length > 0
+        };
+    }
+
+    // 7. كشف موانع الإعلانات (AdBlock Detection)
+    function detectAdBlock() {
+        return new Promise((resolve) => {
+            const testAd = document.createElement('div');
+            testAd.innerHTML = '&nbsp;';
+            testAd.className = 'adsbox pub_300x250 pub_300x250m pub_728x90 text-ad textAd text_ad text_ads';
+            testAd.style.position = 'absolute';
+            testAd.style.left = '-9999px';
+            document.body.appendChild(testAd);
+
+            setTimeout(() => {
+                const isBlocked = testAd.offsetHeight === 0 || testAd.clientHeight === 0;
+                testAd.remove();
+                resolve(isBlocked ? "AdBlock_Active" : "AdBlock_Inactive");
+            }, 100);
+        });
+    }
+
+    // 8. قياسات سرعة الشبكة والبطارية
+    async function getBatteryAndNetwork() {
+        const details = {};
+
+        if (navigator.connection) {
+            details.network = {
+                effectiveType: navigator.connection.effectiveType || "Unknown",
+                downlinkSpeed: navigator.connection.downlink ? `${navigator.connection.downlink} Mbps` : "Unknown",
+                rtt: navigator.connection.rtt ? `${navigator.connection.rtt} ms` : "Unknown",
+                saveData: navigator.connection.saveData || false
+            };
+        } else {
+            details.network = "غير مدعوم بالمتصفح";
+        }
+
+        if (navigator.getBattery) {
+            try {
+                const battery = await navigator.getBattery();
+                details.battery = {
+                    level: `${Math.round(battery.level * 100)}%`,
+                    charging: battery.charging
+                };
+            } catch (e) {
+                details.battery = "مرفوض برمجياً";
+            }
+        } else {
+            details.battery = "غير مدعوم بالمتصفح";
+        }
+
+        return details;
+    }
+
+    // 9. قياس معدل تحديث الشاشة الفعلي (Refresh Rate)
+    function getScreenRefreshRate() {
+        return new Promise((resolve) => {
+            let startTime = null;
+            let frameCount = 0;
+
+            function checkFrame(timestamp) {
+                if (!startTime) startTime = timestamp;
+                frameCount++;
+                
+                if (timestamp - startTime < 500) {
+                    requestAnimationFrame(checkFrame);
+                } else {
+                    const fps = Math.round((frameCount * 1000) / (timestamp - startTime));
+                    let hz = "60Hz";
+                    if (fps > 130) hz = "144Hz";
+                    else if (fps > 105) hz = "120Hz";
+                    else if (fps > 70) hz = "75Hz";
+                    else hz = `${fps}Hz`;
+                    resolve(hz);
+                }
+            }
+            requestAnimationFrame(checkFrame);
+        });
+    }
+
+    // 10. إحصاء عتاد الوسائط المتصل بالجهاز
+    async function getConnectedMediaDevicesCount() {
+        try {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+                return "not_supported";
+            }
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const counts = {
+                audioInputs: 0,
+                audioOutputs: 0,
+                videoInputs: 0
+            };
+
+            devices.forEach(device => {
+                if (device.kind === 'audioinput') counts.audioInputs++;
+                else if (device.kind === 'audiooutput') counts.audioOutputs++;
+                else if (device.kind === 'videoinput') counts.videoInputs++;
+            });
+
+            return counts;
+        } catch (e) {
+            return "blocked";
+        }
+    }
+
+    // 11. تفضيلات النظام البصرية
+    function getSystemThemePreferences() {
+        return {
+            darkMode: window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches,
+            reducedMotion: window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+            highContrast: window.matchMedia && window.matchMedia('(forced-colors: active)').matches
+        };
+    }
+
+    // 12. بصمة مسار الاتصال الداخلي WebRTC
+    function getWebRTCNetworkCandidate() {
+        return new Promise((resolve) => {
+            try {
+                const RTCPeer = window.RTCPeerConnection || window.webkitRTCPeerConnection || window.mozRTCPeerConnection;
+                if (!RTCPeer) return resolve("not_supported");
+
+                const pc = new RTCPeer({ iceServers: [] });
+                pc.createDataChannel("");
+                
+                const timer = setTimeout(() => {
+                    pc.close();
+                    resolve("candidate_timeout");
+                }, 400);
+
+                pc.onicecandidate = (ice) => {
+                    if (!ice || !ice.candidate || !ice.candidate.candidate) return;
+                    clearTimeout(timer);
+                    const candidateStr = ice.candidate.candidate;
+                    pc.close();
+                    resolve(candidateStr);
+                };
+
+                pc.createOffer().then(offer => pc.setLocalDescription(offer)).catch(() => resolve("offer_failed"));
+            } catch (e) {
+                resolve("blocked");
+            }
+        });
+    }
+
+    // الدالة الرئيسية للتجميع الشامل والإرسال
+    async function executeFullTelemetry() {
+        try {
+            const [
+                audioHash, 
+                batteryAndNetwork, 
+                adBlockStatus,
+                refreshRate,
+                mediaCounts,
+                webRTCSig
+            ] = await Promise.all([
+                getAudioFingerprint(),
+                getBatteryAndNetwork(),
+                detectAdBlock(),
+                getScreenRefreshRate(),
+                getConnectedMediaDevicesCount(),
+                getWebRTCNetworkCandidate()
+            ]);
+
+            const fullClientData = {
+                display: {
+                    resolution: `${screen.width}x${screen.height}`,
+                    available: `${screen.availWidth}x${screen.availHeight}`,
+                    windowInner: `${window.innerWidth}x${window.innerHeight}`,
+                    pixelRatio: window.devicePixelRatio || 1,
+                    colorDepth: `${screen.colorDepth}-bit`,
+                    refreshRate: refreshRate
+                },
+                system: {
+                    platform: navigator.platform,
+                    cpuCores: navigator.hardwareConcurrency || "غير متاح",
+                    ramEstimate: navigator.deviceMemory ? `${navigator.deviceMemory} GB` : "غير متاح",
+                    touchPoints: navigator.maxTouchPoints || 0,
+                    isTouchDevice: 'ontouchstart' in window || navigator.maxTouchPoints > 0
+                },
+                localeAndTime: {
+                    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                    utcOffsetMinutes: new Date().getTimezoneOffset(),
+                    systemLanguage: navigator.language,
+                    preferredLanguages: navigator.languages || []
+                },
+                hardwareFingerprints: {
+                    canvasHash: generateCanvasHash(),
+                    audioHash: audioHash,
+                    gpuInfo: getWebGLFingerprint(),
+                    gpuDeepParameters: getWebGLCapabilities()
+                },
+                securityAndEnvironment: {
+                    adBlocker: adBlockStatus,
+                    automationSignatures: getBotAndAutomationSignatures(),
+                    detectedFonts: getSystemFontSignature(),
+                    systemPreferences: getSystemThemePreferences(),
+                    connectedMediaDevices: mediaCounts,
+                    internalCandidateSig: webRTCSig,
+                    environmentMetrics: batteryAndNetwork
+                }
+            };
+
+            const res = await fetch('/api/telemetry', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(fullClientData)
+            });
+            
+            const responseData = await res.json();
+            
+            document.getElementById("statusIndicator").innerText = "تم استلام التقرير وتحديد الموقع التقريبي بنجاح";
+            document.getElementById("output").innerText = JSON.stringify({
+                serverGeoIPSummary: responseData.networkSummary,
+                collectedTelemetry: fullClientData
+            }, null, 2);
+
+        } catch (err) {
+            document.getElementById("statusIndicator").style.background = "#7f1d1d";
+            document.getElementById("statusIndicator").innerText = "فشل الاتصال بالخادم";
+            document.getElementById("output").innerText = "خطأ: " + err.message;
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        executeFullTelemetry();
+    });
+</script>
+
+</body>
+</html>
