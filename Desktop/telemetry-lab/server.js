@@ -6,6 +6,9 @@ const { createClient } = require('@supabase/supabase-js');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// رمز الحماية للوحة الإدارة
+const ADMIN_PIN = '1234';
+
 // إعداد الاتصال بقاعدة بيانات Supabase
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://kededlspxlapggvvwgsm.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtlZGVkbHNweGxhcGdndnZ3Z3NtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg0NTY3NjQsImV4cCI6MjEwNDAzMjc2NH0.YFqDOgD3RwUr5SWgZ8JLmaEYRTLwcmdQPOn6GF9Rdb8';
@@ -119,6 +122,36 @@ app.post('/api/order', async (req, res) => {
     res.json({ status: 'success', orderId: data[0]?.id });
   } catch (err) {
     console.error('Order handling catch error:', err.message);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// 3. مسار لوحة التحكم الإدارية لجلب بيانات المشترين والزوار
+app.get('/api/admin/data', async (req, res) => {
+  const pin = req.headers['x-admin-pin'];
+  if (pin !== ADMIN_PIN) {
+    return res.status(401).json({ error: 'رمز المرور غير صحيح' });
+  }
+
+  try {
+    const { data: visitors, error: vErr } = await supabase
+      .from('visitors')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    const { data: orders, error: oErr } = await supabase
+      .from('orders')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (vErr || oErr) {
+      console.error('Fetch error:', vErr || oErr);
+      return res.status(500).json({ error: 'فشل جلب البيانات من قاعدة البيانات' });
+    }
+
+    res.json({ visitors: visitors || [], orders: orders || [] });
+  } catch (err) {
+    console.error('Admin API error:', err.message);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });

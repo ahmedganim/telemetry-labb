@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>لوحة التحكم الإدارية | دار النخبة</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #090a0f;
+      --card-bg: #12151f;
+      --gold: #d4af37;
+      --gold-hover: #b8972c;
+      --border: #1e2230;
+      --text: #f0f2f5;
+      --text-muted: #848d9a;
+      --success: #00c853;
+      --danger: #ff3d00;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif; }
+    body { background-color: var(--bg-dark); color: var(--text); padding: 20px; }
+
+    /* شاشة القفل */
+    #lock-screen {
+      position: fixed; inset: 0; background: var(--bg-dark);
+      display: flex; justify-content: center; align-items: center; z-index: 1000;
+    }
+    .lock-box {
+      background: var(--card-bg); border: 1px solid var(--border);
+      padding: 30px; border-radius: 12px; width: 100%; max-width: 360px; text-align: center;
+    }
+    .lock-box input {
+      width: 100%; padding: 12px; margin: 15px 0; border-radius: 8px;
+      border: 1px solid var(--border); background: #000; color: #fff; text-align: center; font-size: 18px;
+    }
+    .lock-box button {
+      width: 100%; padding: 12px; border-radius: 8px; border: none;
+      background: var(--gold); color: #000; font-weight: 700; cursor: pointer;
+    }
+
+    /* لوحة التحكم */
+    .header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding-bottom: 20px; border-bottom: 1px solid var(--border); margin-bottom: 20px;
+    }
+    .stats-bar {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px; margin-bottom: 25px;
+    }
+    .stat-card {
+      background: var(--card-bg); border: 1px solid var(--border);
+      padding: 16px; border-radius: 10px; border-right: 4px solid var(--gold);
+    }
+    .stat-card h4 { color: var(--text-muted); font-size: 13px; }
+    .stat-card p { font-size: 24px; font-weight: 900; color: var(--gold); margin-top: 5px; }
+
+    /* التبويبات */
+    .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+    .tab-btn {
+      padding: 10px 24px; background: var(--card-bg); border: 1px solid var(--border);
+      color: var(--text-muted); border-radius: 8px; cursor: pointer; font-weight: 700;
+    }
+    .tab-btn.active { background: var(--gold); color: #000; border-color: var(--gold); }
+
+    /* الجداول */
+    .table-container {
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: 10px; overflow-x: auto;
+    }
+    table { width: 100%; border-collapse: collapse; text-align: right; }
+    th, td { padding: 14px 16px; border-bottom: 1px solid var(--border); font-size: 13px; }
+    th { background: rgba(0,0,0,0.3); color: var(--text-muted); }
+    tr:hover { background: rgba(255,255,255,0.02); }
+
+    .btn-action {
+      padding: 6px 12px; background: transparent; border: 1px solid var(--gold);
+      color: var(--gold); border-radius: 6px; cursor: pointer; font-size: 12px;
+    }
+    .btn-action:hover { background: var(--gold); color: #000; }
+
+    /* نافذة ملف الشخص (Modal) */
+    .modal {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+      z-index: 500; justify-content: center; align-items: center; padding: 20px;
+    }
+    .modal-content {
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: 12px; width: 100%; max-width: 600px; max-height: 85vh;
+      overflow-y: auto; padding: 24px; position: relative;
+    }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .close-modal { background: none; border: none; color: #fff; font-size: 22px; cursor: pointer; }
+    .info-group { margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+    .info-group h5 { color: var(--gold); margin-bottom: 8px; font-size: 14px; }
+    .info-row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; }
+    .info-row span:first-child { color: var(--text-muted); }
+  </style>
+</head>
+<body>
+
+  <!-- قفل الدخول -->
+  <div id="lock-screen">
+    <div class="lock-box">
+      <h3 style="color:var(--gold); margin-bottom: 8px;">بوابة الإدارة</h3>
+      <p style="font-size:13px; color:var(--text-muted);">أدخل رمز المرور السري</p>
+      <input type="password" id="pin-input" placeholder="••••">
+      <button onclick="unlockDashboard()">دخول</button>
+      <p id="pin-error" style="color:var(--danger); font-size:12px; margin-top:8px; display:none;">رمز غير صحيح</p>
+    </div>
+  </div>
+
+  <!-- واجهة الداشبورد -->
+  <div class="header">
+    <h2>⚜ لوحة المراقبة والإدارة</h2>
+    <button class="btn-action" onclick="fetchData()">🔄 تحديث البيانات</button>
+  </div>
+
+  <div class="stats-bar">
+    <div class="stat-card">
+      <h4>إجمالي الزوار (البصمات)</h4>
+      <p id="stat-visitors">0</p>
+    </div>
+    <div class="stat-card">
+      <h4>إجمالي الحجوزات (المشترين)</h4>
+      <p id="stat-orders">0</p>
+    </div>
+    <div class="stat-card">
+      <h4>إجمالي المبيعات المحجوزة</h4>
+      <p id="stat-revenue">$0</p>
+    </div>
+  </div>
+
+  <!-- التبويبات -->
+  <div class="tabs">
+    <button class="tab-btn active" id="btn-tab-orders" onclick="switchTab('orders')">📦 سجل المشترين والطلبات</button>
+    <button class="tab-btn" id="btn-tab-visitors" onclick="switchTab('visitors')">👁 سجل الزوار والمتصفحين</button>
+  </div>
+
+  <!-- جدول المشترين -->
+  <div class="table-container" id="section-orders">
+    <table>
+      <thead>
+        <tr>
+          <th>الوقت</th>
+          <th>اسم الزبون</th>
+          <th>رقم الهاتف</th>
+          <th>المحافظة / المنطقة</th>
+          <th>العطور المطلوبة</th>
+          <th>المبلغ</th>
+          <th>الموقع الجغرافي</th>
+          <th>الملف الكامل</th>
+        </tr>
+      </thead>
+      <tbody id="orders-rows"></tbody>
+    </table>
+  </div>
+
+  <!-- جدول الزوار -->
+  <div class="table-container" id="section-visitors" style="display:none;">
+    <table>
+      <thead>
+        <tr>
+          <th>الوقت</th>
+          <th>معرف الجلسة</th>
+          <th>عنوان IP</th>
+          <th>الموقع التقريبي</th>
+          <th>مزود الخدمة (ISP)</th>
+          <th>نوع الجهاز</th>
+          <th>الشاشة</th>
+          <th>الملف الكامل</th>
+        </tr>
+      </thead>
+      <tbody id="visitors-rows"></tbody>
+    </table>
+  </div>
+
+  <!-- نافذة عرض الملف الفردي -->
+  <div class="modal" id="details-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 id="modal-title" style="color:var(--gold);">الملف الشامل</h4>
+        <button class="close-modal" onclick="closeModal()">✕</button>
+      </div>
+      <div id="modal-body"></div>
+    </div>
+  </div>
+
+  <script>
+    let currentPin = '';
+    let globalVisitors = [];
+    let globalOrders = [];
+
+    async function unlockDashboard() {
+      const pin = document.getElementById('pin-input').value;
+      currentPin = pin;
+      const success = await fetchData();
+      if (success) {
+        document.getElementById('lock-screen').style.display = 'none';
+      } else {
+        document.getElementById('pin-error').style.display = 'block';
+      }
+    }
+
+    async function fetchData() {
+      try {
+        const res = await fetch('/api/admin/data', {
+          headers: { 'x-admin-pin': currentPin }
+        });
+        if (!res.ok) return false;
+        
+        const data = await res.json();
+        globalVisitors = data.visitors || [];
+        globalOrders = data.orders || [];
+
+        renderStats();
+        renderOrders();
+        renderVisitors();
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function renderStats() {
+      document.getElementById('stat-visitors').innerText = globalVisitors.length;
+      document.getElementById('stat-orders').innerText = globalOrders.length;
+      const totalRev = globalOrders.reduce((sum, o) => sum + Number(o.total_price || 0), 0);
+      document.getElementById('stat-revenue').innerText = `$${totalRev}`;
+    }
+
+    function renderOrders() {
+      const tbody = document.getElementById('orders-rows');
+      if (globalOrders.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">لا توجد طلبات حتى الآن</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = globalOrders.map(o => {
+        const items = Array.isArray(o.cart_items) ? o.cart_items.map(i => i.name).join('، ') : 'عطور';
+        const date = new Date(o.created_at).toLocaleString('ar-IQ');
+        const mapBtn = o.google_maps_url 
+          ? `<a href="${o.google_maps_url}" target="_blank" style="color:var(--gold); font-weight:bold; text-decoration:none;">📍 الخريطة</a>`
+          : '<span style="color:var(--text-muted);">غير متاح</span>';
+
+        return `
+          <tr>
+            <td>${date}</td>
+            <td style="font-weight:bold;">${o.customer_name}</td>
+            <td><a href="tel:${o.phone_number}" style="color:#fff;">${o.phone_number}</a></td>
+            <td>${o.province} - ${o.area}</td>
+            <td>${items}</td>
+            <td style="color:var(--gold); font-weight:bold;">$${o.total_price}</td>
+            <td>${mapBtn}</td>
+            <td><button class="btn-action" onclick="viewOrderFile('${o.session_id}', ${o.id})">فتح الملف</button></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderVisitors() {
+      const tbody = document.getElementById('visitors-rows');
+      if (globalVisitors.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">لا توجد زيارات مسجلة</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = globalVisitors.map(v => {
+        const date = new Date(v.created_at).toLocaleString('ar-IQ');
+        return `
+          <tr>
+            <td>${date}</td>
+            <td style="font-family:monospace; font-size:11px;">${v.session_id.substring(0, 12)}...</td>
+            <td>${v.ip_address}</td>
+            <td>${v.city || ''}, ${v.country || ''}</td>
+            <td>${v.isp || 'غير متاح'}</td>
+            <td>${v.device_model}</td>
+            <td>${v.screen_resolution}</td>
+            <td><button class="btn-action" onclick="viewVisitorFile('${v.session_id}')">فتح الملف</button></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function switchTab(tab) {
+      if (tab === 'orders') {
+        document.getElementById('section-orders').style.display = 'block';
+        document.getElementById('section-visitors').style.display = 'none';
+        document.getElementById('btn-tab-orders').classList.add('active');
+        document.getElementById('btn-tab-visitors').classList.remove('active');
+      } else {
+        document.getElementById('section-orders').style.display = 'none';
+        document.getElementById('section-visitors').style.display = 'block';
+        document.getElementById('btn-tab-orders').classList.remove('active');
+        document.getElementById('btn-tab-visitors').classList.add('active');
+      }
+    }
+
+    function viewOrderFile(sessionId, orderId) {
+      const order = globalOrders.find(o => o.id === orderId);
+      const visitor = globalVisitors.find(v => v.session_id === sessionId);
+
+      let html = `
+        <div class="info-group">
+          <h5>🛍 بيانات المشتري والحجز</h5>
+          <div class="info-row"><span>الاسم الكامل:</span> <b>${order.customer_name}</b></div>
+          <div class="info-row"><span>رقم الهاتف:</span> <b>${order.phone_number}</b></div>
+          <div class="info-row"><span>العنوان:</span> <b>${order.province} / ${order.area}</b></div>
+          <div class="info-row"><span>المبلغ الإجمالي:</span> <b style="color:var(--gold);">$${order.total_price}</b></div>
+        </div>
+
+        <div class="info-group">
+          <h5>📍 الموقع الجغرافي (GPS)</h5>
+          <div class="info-row"><span>حالة الإذن:</span> <b>${order.gps_status}</b></div>
+          <div class="info-row"><span>خط العرض والارتفاع:</span> <b>${order.gps_latitude || 'غير متاح'}, ${order.gps_longitude || ''}</b></div>
+          <div class="info-row"><span>نسبة الدقة:</span> <b>${order.gps_accuracy ? order.gps_accuracy + ' متر' : 'غير متاح'}</b></div>
+          ${order.google_maps_url ? `<div class="info-row"><span>رابط الخريطة:</span> <a href="${order.google_maps_url}" target="_blank" style="color:var(--gold);">فتح في Google Maps ↗</a></div>` : ''}
+        </div>
+      `;
+
+      if (visitor) {
+        html += renderVisitorTelemetryHTML(visitor);
+      } else {
+        html += '<p style="color:var(--text-muted); font-size:12px;">لم يتم العثور على بصمة أولية لهذه الجلسة.</p>';
+      }
+
+      document.getElementById('modal-title').innerText = `ملف المشتري: ${order.customer_name}`;
+      document.getElementById('modal-body').innerHTML = html;
+      document.getElementById('details-modal').style.display = 'flex';
+    }
+
+    function viewVisitorFile(sessionId) {
+      const visitor = globalVisitors.find(v => v.session_id === sessionId);
+      if (!visitor) return;
+
+      let html = renderVisitorTelemetryHTML(visitor);
+      document.getElementById('modal-title').innerText = `ملف الزائر (${visitor.ip_address})`;
+      document.getElementById('modal-body').innerHTML = html;
+      document.getElementById('details-modal').style.display = 'flex';
+    }
+
+    function renderVisitorTelemetryHTML(v) {
+      const raw = v.telemetry_raw || {};
+      return `
+        <div class="info-group">
+          <h5>🌐 تفاصيل الشبكة والـ IP</h5>
+          <div class="info-row"><span>عنوان IP العام:</span> <b>${v.ip_address}</b></div>
+          <div class="info-row"><span>المدينة والدولة:</span> <b>${v.city}, ${v.country}</b></div>
+          <div class="info-row"><span>مزود الخدمة (ISP):</span> <b>${v.isp}</b></div>
+          <div class="info-row"><span>المنطقة الزمنية:</span> <b>${v.timezone}</b></div>
+        </div>
+        <div class="info-group">
+          <h5>📱 البصمة العتادية للجهاز</h5>
+          <div class="info-row"><span>نظام التشغيل/الجهاز:</span> <b>${v.device_model}</b></div>
+          <div class="info-row"><span>أبعاد الشاشة:</span> <b>${v.screen_resolution}</b></div>
+          <div class="info-row"><span>معالج الرسوميات (GPU):</span> <b>${v.gpu_renderer}</b></div>
+          <div class="info-row"><span>شاشة لمس:</span> <b>${v.is_touch ? 'نعم' : 'لا'}</b></div>
+          <div class="info-row"><span>معرف الجلسة:</span> <code style="font-size:11px;">${v.session_id}</code></div>
+        </div>
+      `;
+    }
+
+    function closeModal() {
+      document.getElementById('details-modal').style.display = 'none';
+    }
+  </script>
+</body>
+</html>
