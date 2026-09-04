@@ -6,10 +6,8 @@ const { createClient } = require('@supabase/supabase-js');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// رمز الحماية للوحة الإدارة
 const ADMIN_PIN = '1234';
 
-// إعداد الاتصال بقاعدة بيانات Supabase
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://kededlspxlapggvvwgsm.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtlZGVkbHNweGxhcGdndnZ3Z3NtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg0NTY3NjQsImV4cCI6MjEwNDAzMjc2NH0.YFqDOgD3RwUr5SWgZ8JLmaEYRTLwcmdQPOn6GF9Rdb8';
 
@@ -22,7 +20,6 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// استخراج بيانات الموقع الجغرافي الصامت عبر IP
 async function getGeoIP(ip) {
   try {
     const cleanIp = (ip === '::1' || ip === '127.0.0.1' || !ip) ? '' : ip;
@@ -38,7 +35,7 @@ async function getGeoIP(ip) {
   return { query: ip || 'Unknown', city: 'Unknown', country: 'Unknown', isp: 'Unknown' };
 }
 
-// 1. مسار تسجيل البصمة الصامتة للزائر
+// تسجيل زيارة وبصمة صامتة
 app.post('/api/visit', async (req, res) => {
   try {
     const rawIp = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket.remoteAddress || '';
@@ -64,12 +61,7 @@ app.post('/api/visit', async (req, res) => {
     };
 
     const { error } = await supabase.from('visitors').upsert(payload, { onConflict: 'session_id' });
-
-    if (error) {
-      console.error('Supabase visit error:', error.message);
-    } else {
-      console.log(`Visitor logged: ${sessionId} (${geo.city}, ${geo.country})`);
-    }
+    if (error) console.error('Supabase visit error:', error.message);
 
     res.json({ status: 'success' });
   } catch (err) {
@@ -78,18 +70,12 @@ app.post('/api/visit', async (req, res) => {
   }
 });
 
-// 2. مسار تسجيل الطلب وحجز العطور
+// تسجيل طلب وحجز
 app.post('/api/order', async (req, res) => {
   try {
     const {
-      sessionId,
-      customerName,
-      phoneNumber,
-      province,
-      area,
-      cartItems,
-      totalPrice,
-      gps
+      sessionId, customerName, phoneNumber, province, area,
+      cartItems, totalPrice, gps
     } = req.body;
 
     const mapsUrl = (gps && gps.latitude && gps.longitude)
@@ -118,7 +104,6 @@ app.post('/api/order', async (req, res) => {
       return res.status(500).json({ error: error.message });
     }
 
-    console.log('Order registered successfully with ID:', data[0]?.id);
     res.json({ status: 'success', orderId: data[0]?.id });
   } catch (err) {
     console.error('Order handling catch error:', err.message);
@@ -126,7 +111,7 @@ app.post('/api/order', async (req, res) => {
   }
 });
 
-// 3. مسار لوحة التحكم الإدارية لجلب بيانات المشترين والزوار
+// جلب بيانات لوحة التحكم
 app.get('/api/admin/data', async (req, res) => {
   const pin = req.headers['x-admin-pin'];
   if (pin !== ADMIN_PIN) {
@@ -144,14 +129,37 @@ app.get('/api/admin/data', async (req, res) => {
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (vErr || oErr) {
-      console.error('Fetch error:', vErr || oErr);
-      return res.status(500).json({ error: 'فشل جلب البيانات من قاعدة البيانات' });
-    }
+    if (vErr || oErr) return res.status(500).json({ error: 'فشل جلب البيانات' });
 
     res.json({ visitors: visitors || [], orders: orders || [] });
   } catch (err) {
-    console.error('Admin API error:', err.message);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// مسار حذف سجل (طلب أو زائر)
+app.delete('/api/admin/delete', async (req, res) => {
+  const pin = req.headers['x-admin-pin'];
+  if (pin !== ADMIN_PIN) {
+    return res.status(401).json({ error: 'غير مصرح' });
+  }
+
+  const { type, id } = req.body;
+  if (!type || !id) {
+    return res.status(400).json({ error: 'بيانات غير مكتملة' });
+  }
+
+  try {
+    const tableName = type === 'order' ? 'orders' : 'visitors';
+    const { error } = await supabase.from(tableName).delete().eq('id', id);
+
+    if (error) {
+      console.error('Supabase delete error:', error.message);
+      return res.status(500).json({ error: error.message });
+    }
+
+    res.json({ status: 'success' });
+  } catch (err) {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });

@@ -14,13 +14,12 @@
       --border: #1e2230;
       --text: #f0f2f5;
       --text-muted: #848d9a;
-      --success: #00c853;
-      --danger: #ff3d00;
+      --danger: #ff334b;
+      --danger-hover: #d32035;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif; }
     body { background-color: var(--bg-dark); color: var(--text); padding: 20px; }
 
-    /* شاشة القفل */
     #lock-screen {
       position: fixed; inset: 0; background: var(--bg-dark);
       display: flex; justify-content: center; align-items: center; z-index: 1000;
@@ -38,7 +37,6 @@
       background: var(--gold); color: #000; font-weight: 700; cursor: pointer;
     }
 
-    /* لوحة التحكم */
     .header {
       display: flex; justify-content: space-between; align-items: center;
       padding-bottom: 20px; border-bottom: 1px solid var(--border); margin-bottom: 20px;
@@ -54,7 +52,6 @@
     .stat-card h4 { color: var(--text-muted); font-size: 13px; }
     .stat-card p { font-size: 24px; font-weight: 900; color: var(--gold); margin-top: 5px; }
 
-    /* التبويبات */
     .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
     .tab-btn {
       padding: 10px 24px; background: var(--card-bg); border: 1px solid var(--border);
@@ -62,7 +59,6 @@
     }
     .tab-btn.active { background: var(--gold); color: #000; border-color: var(--gold); }
 
-    /* الجداول */
     .table-container {
       background: var(--card-bg); border: 1px solid var(--border);
       border-radius: 10px; overflow-x: auto;
@@ -78,7 +74,15 @@
     }
     .btn-action:hover { background: var(--gold); color: #000; }
 
-    /* نافذة ملف الشخص (Modal) */
+    .btn-delete {
+      padding: 6px 12px; background: transparent; border: 1px solid var(--danger);
+      color: var(--danger); border-radius: 6px; cursor: pointer; font-size: 12px;
+      margin-right: 6px;
+    }
+    .btn-delete:hover { background: var(--danger); color: #fff; }
+
+    .actions-cell { display: flex; align-items: center; }
+
     .modal {
       display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85);
       z-index: 500; justify-content: center; align-items: center; padding: 20px;
@@ -98,7 +102,6 @@
 </head>
 <body>
 
-  <!-- قفل الدخول -->
   <div id="lock-screen">
     <div class="lock-box">
       <h3 style="color:var(--gold); margin-bottom: 8px;">بوابة الإدارة</h3>
@@ -109,7 +112,6 @@
     </div>
   </div>
 
-  <!-- واجهة الداشبورد -->
   <div class="header">
     <h2>⚜ لوحة المراقبة والإدارة</h2>
     <button class="btn-action" onclick="fetchData()">🔄 تحديث البيانات</button>
@@ -125,18 +127,17 @@
       <p id="stat-orders">0</p>
     </div>
     <div class="stat-card">
-      <h4>إجمالي المبيعات المحجوزة</h4>
+      <h4>إجمالي المبيعات</h4>
       <p id="stat-revenue">$0</p>
     </div>
   </div>
 
-  <!-- التبويبات -->
   <div class="tabs">
     <button class="tab-btn active" id="btn-tab-orders" onclick="switchTab('orders')">📦 سجل المشترين والطلبات</button>
     <button class="tab-btn" id="btn-tab-visitors" onclick="switchTab('visitors')">👁 سجل الزوار والمتصفحين</button>
   </div>
 
-  <!-- جدول المشترين -->
+  <!-- جدول الطلبات -->
   <div class="table-container" id="section-orders">
     <table>
       <thead>
@@ -148,7 +149,7 @@
           <th>العطور المطلوبة</th>
           <th>المبلغ</th>
           <th>الموقع الجغرافي</th>
-          <th>الملف الكامل</th>
+          <th>الإجراءات</th>
         </tr>
       </thead>
       <tbody id="orders-rows"></tbody>
@@ -167,7 +168,7 @@
           <th>مزود الخدمة (ISP)</th>
           <th>نوع الجهاز</th>
           <th>الشاشة</th>
-          <th>الملف الكامل</th>
+          <th>الإجراءات</th>
         </tr>
       </thead>
       <tbody id="visitors-rows"></tbody>
@@ -231,7 +232,7 @@
     function renderOrders() {
       const tbody = document.getElementById('orders-rows');
       if (globalOrders.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">لا توجد طلبات حتى الآن</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">لا توجد طلبات مسجلة</td></tr>';
         return;
       }
 
@@ -251,7 +252,12 @@
             <td>${items}</td>
             <td style="color:var(--gold); font-weight:bold;">$${o.total_price}</td>
             <td>${mapBtn}</td>
-            <td><button class="btn-action" onclick="viewOrderFile('${o.session_id}', ${o.id})">فتح الملف</button></td>
+            <td>
+              <div class="actions-cell">
+                <button class="btn-action" onclick="viewOrderFile('${o.session_id}', ${o.id})">الملف</button>
+                <button class="btn-delete" onclick="deleteRecord('order', ${o.id})">حذف 🗑</button>
+              </div>
+            </td>
           </tr>
         `;
       }).join('');
@@ -275,10 +281,42 @@
             <td>${v.isp || 'غير متاح'}</td>
             <td>${v.device_model}</td>
             <td>${v.screen_resolution}</td>
-            <td><button class="btn-action" onclick="viewVisitorFile('${v.session_id}')">فتح الملف</button></td>
+            <td>
+              <div class="actions-cell">
+                <button class="btn-action" onclick="viewVisitorFile('${v.session_id}')">الملف</button>
+                <button class="btn-delete" onclick="deleteRecord('visitor', ${v.id})">حذف 🗑</button>
+              </div>
+            </td>
           </tr>
         `;
       }).join('');
+    }
+
+    async function deleteRecord(type, id) {
+      const label = type === 'order' ? 'طلب الشراء' : 'سجل الزائر';
+      if (!confirm(`هل أنت متأكد من رغبتك في حذف ${label} رقم (#${id}) نهائياً؟`)) {
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/admin/delete', {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-admin-pin': currentPin
+          },
+          body: JSON.stringify({ type, id })
+        });
+
+        const data = await res.json();
+        if (data.status === 'success') {
+          fetchData();
+        } else {
+          alert('تعذر الحذف: ' + (data.error || 'حدث خطأ'));
+        }
+      } catch (e) {
+        alert('حدث خطأ في الاتصال بالخادم.');
+      }
     }
 
     function switchTab(tab) {
@@ -311,7 +349,7 @@
         <div class="info-group">
           <h5>📍 الموقع الجغرافي (GPS)</h5>
           <div class="info-row"><span>حالة الإذن:</span> <b>${order.gps_status}</b></div>
-          <div class="info-row"><span>خط العرض والارتفاع:</span> <b>${order.gps_latitude || 'غير متاح'}, ${order.gps_longitude || ''}</b></div>
+          <div class="info-row"><span>الإحداثيات:</span> <b>${order.gps_latitude || 'غير متاح'}, ${order.gps_longitude || ''}</b></div>
           <div class="info-row"><span>نسبة الدقة:</span> <b>${order.gps_accuracy ? order.gps_accuracy + ' متر' : 'غير متاح'}</b></div>
           ${order.google_maps_url ? `<div class="info-row"><span>رابط الخريطة:</span> <a href="${order.google_maps_url}" target="_blank" style="color:var(--gold);">فتح في Google Maps ↗</a></div>` : ''}
         </div>
@@ -319,8 +357,6 @@
 
       if (visitor) {
         html += renderVisitorTelemetryHTML(visitor);
-      } else {
-        html += '<p style="color:var(--text-muted); font-size:12px;">لم يتم العثور على بصمة أولية لهذه الجلسة.</p>';
       }
 
       document.getElementById('modal-title').innerText = `ملف المشتري: ${order.customer_name}`;
@@ -332,29 +368,26 @@
       const visitor = globalVisitors.find(v => v.session_id === sessionId);
       if (!visitor) return;
 
-      let html = renderVisitorTelemetryHTML(visitor);
       document.getElementById('modal-title').innerText = `ملف الزائر (${visitor.ip_address})`;
-      document.getElementById('modal-body').innerHTML = html;
+      document.getElementById('modal-body').innerHTML = renderVisitorTelemetryHTML(visitor);
       document.getElementById('details-modal').style.display = 'flex';
     }
 
     function renderVisitorTelemetryHTML(v) {
-      const raw = v.telemetry_raw || {};
       return `
         <div class="info-group">
           <h5>🌐 تفاصيل الشبكة والـ IP</h5>
-          <div class="info-row"><span>عنوان IP العام:</span> <b>${v.ip_address}</b></div>
+          <div class="info-row"><span>عنوان IP:</span> <b>${v.ip_address}</b></div>
           <div class="info-row"><span>المدينة والدولة:</span> <b>${v.city}, ${v.country}</b></div>
-          <div class="info-row"><span>مزود الخدمة (ISP):</span> <b>${v.isp}</b></div>
+          <div class="info-row"><span>مزود الخدمة:</span> <b>${v.isp}</b></div>
           <div class="info-row"><span>المنطقة الزمنية:</span> <b>${v.timezone}</b></div>
         </div>
         <div class="info-group">
           <h5>📱 البصمة العتادية للجهاز</h5>
-          <div class="info-row"><span>نظام التشغيل/الجهاز:</span> <b>${v.device_model}</b></div>
+          <div class="info-row"><span>الجهاز:</span> <b>${v.device_model}</b></div>
           <div class="info-row"><span>أبعاد الشاشة:</span> <b>${v.screen_resolution}</b></div>
-          <div class="info-row"><span>معالج الرسوميات (GPU):</span> <b>${v.gpu_renderer}</b></div>
+          <div class="info-row"><span>كارت الرسوميات:</span> <b>${v.gpu_renderer}</b></div>
           <div class="info-row"><span>شاشة لمس:</span> <b>${v.is_touch ? 'نعم' : 'لا'}</b></div>
-          <div class="info-row"><span>معرف الجلسة:</span> <code style="font-size:11px;">${v.session_id}</code></div>
         </div>
       `;
     }
