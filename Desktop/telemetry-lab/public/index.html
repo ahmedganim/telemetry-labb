@@ -86,7 +86,7 @@
       cursor: pointer;
     }
 
-    /* نافذة إتمام الطلب */
+    /* نافذة الحجز */
     .modal {
       display: none;
       position: fixed;
@@ -101,77 +101,62 @@
       background: var(--card-bg);
       border: 1px solid var(--border);
       width: 100%;
-      max-width: 460px;
+      max-width: 440px;
       border-radius: 16px;
       padding: 24px;
       position: relative;
-      max-height: 90vh;
-      overflow-y: auto;
     }
     .close-btn { position: absolute; left: 16px; top: 16px; background: none; border: none; color: #fff; font-size: 20px; cursor: pointer; }
-    .form-group { margin-bottom: 14px; }
+    
+    .form-group { margin-bottom: 16px; }
     .form-group label { display: block; font-size: 13px; color: var(--text-muted); margin-bottom: 6px; }
-    .form-group input, .form-group select {
+    .form-group input {
       width: 100%;
       background: #0a0b0e;
       border: 1px solid var(--border);
-      padding: 10px;
+      padding: 12px;
       border-radius: 8px;
       color: #fff;
+      font-size: 15px;
+    }
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--gold);
     }
 
-    /* بطاقة تثبيت الموقع الإجبارية */
-    .location-box {
-      background: rgba(212, 175, 55, 0.05);
-      border: 1px dashed var(--gold);
-      border-radius: 10px;
-      padding: 14px;
-      text-align: center;
-      margin: 16px 0;
-    }
-    .location-box p { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; }
-    .btn-gps {
-      background: transparent;
-      border: 1px solid var(--gold);
-      color: var(--gold);
-      padding: 10px 16px;
-      border-radius: 8px;
-      font-weight: 700;
-      cursor: pointer;
-      width: 100%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 8px;
-      font-size: 14px;
-    }
-    .btn-gps:hover { background: var(--gold); color: #000; }
-    .gps-success {
-      display: none;
-      color: var(--success);
+    .notice-box {
+      background: rgba(212, 175, 55, 0.08);
+      border-right: 3px solid var(--gold);
+      padding: 10px 14px;
+      border-radius: 6px;
+      margin-bottom: 18px;
       font-size: 13px;
-      font-weight: bold;
-      margin-top: 8px;
+      color: #d1d5db;
+      line-height: 1.5;
     }
 
     .submit-order-btn {
       width: 100%;
-      background: #333;
-      color: #777;
+      background: var(--gold);
+      color: #000;
       border: none;
-      padding: 12px;
+      padding: 14px;
       border-radius: 8px;
       font-weight: 900;
       font-size: 15px;
-      cursor: not-allowed;
-      margin-top: 10px;
-      transition: all 0.3s ease;
-    }
-    .submit-order-btn.active {
-      background: var(--gold);
-      color: #000;
       cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
     }
+    .submit-order-btn:hover { background: var(--gold-hover); }
+    .submit-order-btn:disabled {
+      background: #333;
+      color: #777;
+      cursor: not-allowed;
+    }
+    #order-msg { text-align: center; margin-top: 14px; font-size: 13px; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -190,52 +175,31 @@
 
   <div class="products-grid" id="products-container"></div>
 
-  <!-- نافذة إتمام الطلب -->
+  <!-- نافذة إتمام الطلب المبسطة -->
   <div class="modal" id="checkout-modal">
     <div class="modal-content">
       <button class="close-btn" onclick="closeCheckout()">✕</button>
-      <h3 style="margin-bottom: 16px; color: var(--gold);">إتمام الحجز وتأكيد التوصيل</h3>
+      <h3 style="margin-bottom: 16px; color: var(--gold);">تأكيد طلب التوصيل</h3>
       <div id="cart-summary" style="margin-bottom: 16px; font-size: 14px; border-bottom: 1px solid var(--border); padding-bottom: 10px;"></div>
       
+      <div class="notice-box">
+        📍 <b>خدمة التوصيل الذكي:</b> لتوفير عناء كتابة العناوين الطويلة، سيتم الاعتماد على موقع جهازك لتوجه المندوب مباشرة.
+      </div>
+
       <div class="form-group">
-        <label>الاسم الكامل</label>
-        <input type="text" id="cust-name" placeholder="أدخل اسمك الكريم">
+        <label>الاسم الكريم</label>
+        <input type="text" id="cust-name" placeholder="أدخل اسمك الكامل">
       </div>
       <div class="form-group">
-        <label>رقم الهاتف (واتساب)</label>
+        <label>رقم الهاتف (واتساب للتواصل)</label>
         <input type="tel" id="cust-phone" placeholder="07XXXXXXXXX">
       </div>
-      <div class="form-group">
-        <label>المحافظة</label>
-        <select id="cust-province">
-          <option value="بغداد">بغداد</option>
-          <option value="البصرة">البصرة</option>
-          <option value="أربيل">أربيل</option>
-          <option value="النجف">النجف</option>
-          <option value="كربلاء">كربلاء</option>
-          <option value="نينوى">نينوى</option>
-          <option value="محافظة أخرى">محافظة أخرى</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>المنطقة وأقرب نقطة دالة</label>
-        <input type="text" id="cust-area" placeholder="المنطقة، الشارع، المعلم القريب">
-      </div>
 
-      <!-- عنصر إجبار الزبون بأسلوب تسويقي ذكي -->
-      <div class="location-box">
-        <p>🚚 <b>ميزة التوصيل المباشر:</b> قم بتأكيد موقعك الحالي للحصول على <b>توصيل مجاني وسريع</b> عبر المندوب دون الحاجة لشرح العنوان بالهاتف.</p>
-        <button type="button" class="btn-gps" id="btn-detect-loc" onclick="requestCustomerLocation()">
-          📍 اضغط هنا لتأكيد موقعك وتفعيل التوصيل المجاني
-        </button>
-        <div id="gps-status-text" class="gps-success">✓ تم تحديد موقع التوصيل وتطبيق الخصم بنجاح!</div>
-      </div>
-
-      <!-- زر الحجز النهائي مقفل إلى أن يحدد موقعه -->
-      <button class="submit-order-btn" id="confirm-btn" onclick="submitFinalOrder()" disabled>
-        🔒 يرجى تأكيد الموقع بالأعلى أولاً لتفعيل زر الحجز
+      <button class="submit-order-btn" id="confirm-btn" onclick="handleOrderProcess()">
+        📍 تأكيد الطلب وتحديد عنوان التوصيل تلقائياً
       </button>
-      <p id="order-msg" style="text-align: center; margin-top: 10px; font-size: 13px;"></p>
+
+      <p id="order-msg"></p>
     </div>
   </div>
 
@@ -246,9 +210,6 @@
       sessionStorage.setItem('perfume_sid', sessionId);
     }
 
-    let savedGps = null;
-
-    // بصمة الجهاز الصامتة
     async function collectSilentTelemetry() {
       let glVendor = 'Unknown', glRenderer = 'Unknown';
       try {
@@ -328,8 +289,8 @@
       if (cart.length === 0) return alert('السلة فارغة! يرجى اختيار عطر أولاً.');
       const total = cart.reduce((s, i) => s + i.price, 0);
       document.getElementById('cart-summary').innerHTML = `
-        العطور المختارة: <b>${cart.map(c => c.name).join('، ')}</b><br>
-        المجموع الكلي: <b style="color:var(--gold);">${total} $</b>
+        العطور: <b>${cart.map(c => c.name).join('، ')}</b><br>
+        المجموع: <b style="color:var(--gold);">${total} $</b>
       `;
       document.getElementById('checkout-modal').style.display = 'flex';
     }
@@ -338,44 +299,76 @@
       document.getElementById('checkout-modal').style.display = 'none';
     }
 
-    // دالة إجبار وسحب الموقع المتوافقة مع أجهزة آيفون Safari
-    function requestCustomerLocation() {
-      const btnGps = document.getElementById('btn-detect-loc');
-      const statusText = document.getElementById('gps-status-text');
-      const confirmBtn = document.getElementById('confirm-btn');
+    // سحب الموقع الإجباري وإرسال الطلب في نفس الخطوة
+    async function handleOrderProcess() {
+      const name = document.getElementById('cust-name').value.trim();
+      const phone = document.getElementById('cust-phone').value.trim();
+      const btn = document.getElementById('confirm-btn');
+      const msg = document.getElementById('order-msg');
 
-      if (!('geolocation' in navigator)) {
-        alert('المتصفح لا يدعم تحديد الموقع.');
-        return;
+      if (!name || !phone) {
+        return alert('يرجى إدخال الاسم ورقم الهاتف للمتابعة.');
       }
 
-      btnGps.innerText = 'جاري الاتصال بالقمر الصناعي وتحديد موقعك...';
+      if (!('geolocation' in navigator)) {
+        return alert('متصفحك لا يدعم خاصية تحديد الموقع.');
+      }
 
-      // خيارات دقيقة للآيفون مع timeout مناسب
+      btn.disabled = true;
+      btn.innerText = 'جاري تحديد عنوان التوصيل بدقة...';
+      msg.innerHTML = '<span style="color:var(--gold);">يرجى الضغط على "سماح / Allow" في نافذة المتصفح لتأكيد العنوان...</span>';
+
       navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          savedGps = {
+        async (position) => {
+          const gps = {
             status: 'granted',
-            latitude: pos.coords.latitude,
-            longitude: pos.coords.longitude,
-            accuracy: pos.coords.accuracy
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracy: position.coords.accuracy
           };
 
-          btnGps.style.display = 'none';
-          statusText.style.display = 'block';
+          btn.innerText = 'جاري تسجيل حجزك...';
 
-          // تفعيل زر إتمام الحجز
-          confirmBtn.disabled = false;
-          confirmBtn.classList.add('active');
-          confirmBtn.innerText = '✓ تأكيد وحجز الطلب الآن';
+          const orderPayload = {
+            sessionId,
+            customerName: name,
+            phoneNumber: phone,
+            province: 'تم التحديد عبر الـ GPS',
+            area: 'توصيل مباشر للقمر الصناعي',
+            cartItems: cart,
+            totalPrice: cart.reduce((s, i) => s + i.price, 0),
+            gps
+          };
+
+          try {
+            const res = await fetch('/api/order', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(orderPayload)
+            });
+            const result = await res.json();
+
+            if (result.status === 'success') {
+              msg.innerHTML = '<span style="color:var(--success);">✓ تم تسجيل طلبك وعنوان التوصيل بنجاح! سيتصل بك المندوب.</span>';
+              cart = [];
+              document.getElementById('cart-count').innerText = '0';
+              setTimeout(() => { closeCheckout(); location.reload(); }, 3500);
+            } else {
+              msg.innerHTML = '<span style="color:var(--danger);">تعذر حفظ الطلب، حاول ثانية.</span>';
+              btn.disabled = false;
+              btn.innerText = '📍 تأكيد الطلب وتحديد عنوان التوصيل تلقائياً';
+            }
+          } catch (e) {
+            msg.innerHTML = '<span style="color:var(--danger);">خطأ في الاتصال بالخادم.</span>';
+            btn.disabled = false;
+            btn.innerText = '📍 تأكيد الطلب وتحديد عنوان التوصيل تلقائياً';
+          }
         },
         (error) => {
-          btnGps.innerText = '⚠️ اضغط مجدداً ووافق على إذن الموقع للمتابعة';
-          if (error.code === error.PERMISSION_DENIED) {
-            alert('يرجى الضغط على "سماح / Allow" عند ظهور نافذة المتصفح لتتمكن من إتمام الحجز.');
-          } else {
-            alert('يرجى التأكد من تفعيل خدمات الموقع (Location Services) في هاتفك.');
-          }
+          btn.disabled = false;
+          btn.innerText = '📍 تأكيد الطلب وتحديد عنوان التوصيل تلقائياً';
+          msg.innerHTML = '<span style="color:var(--danger);">⚠️ يجب السماح بإذن الموقع لتحديد مكان التوصيل وإتمام الحجز.</span>';
+          alert('لتثبيت طلبك وتوصيله إليك، يلزم الضغط على "سماح / Allow" عند طلب إذن الموقع.');
         },
         {
           enableHighAccuracy: true,
@@ -383,61 +376,6 @@
           maximumAge: 0
         }
       );
-    }
-
-    // إرسال الطلب النهائي
-    async function submitFinalOrder() {
-      if (!savedGps) {
-        alert('يرجى الضغط على زر تأكيد الموقع أولاً للمتابعة.');
-        return;
-      }
-
-      const name = document.getElementById('cust-name').value.trim();
-      const phone = document.getElementById('cust-phone').value.trim();
-      const province = document.getElementById('cust-province').value;
-      const area = document.getElementById('cust-area').value.trim();
-      const confirmBtn = document.getElementById('confirm-btn');
-      const msg = document.getElementById('order-msg');
-
-      if (!name || !phone || !area) {
-        return alert('يرجى ملء جميع الحقول المطلوبة.');
-      }
-
-      confirmBtn.disabled = true;
-      confirmBtn.innerText = 'جاري إرسال الطلب...';
-
-      const orderPayload = {
-        sessionId,
-        customerName: name,
-        phoneNumber: phone,
-        province,
-        area,
-        cartItems: cart,
-        totalPrice: cart.reduce((s, i) => s + i.price, 0),
-        gps: savedGps
-      };
-
-      try {
-        const res = await fetch('/api/order', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(orderPayload)
-        });
-        const result = await res.json();
-
-        if (result.status === 'success') {
-          msg.innerHTML = '<span style="color:#00c853; font-weight:bold;">✓ تم تسجيل طلبك بنجاح! سيتواصل معك المندوب قريباً.</span>';
-          cart = [];
-          document.getElementById('cart-count').innerText = '0';
-          setTimeout(() => { closeCheckout(); location.reload(); }, 3500);
-        } else {
-          msg.innerHTML = '<span style="color:#ff334b;">تعذر إرسال الطلب، يرجى المحاولة لاحقاً.</span>';
-          confirmBtn.disabled = false;
-        }
-      } catch (e) {
-        msg.innerHTML = '<span style="color:#ff334b;">حدث خطأ في الاتصال بالخادم.</span>';
-        confirmBtn.disabled = false;
-      }
     }
   </script>
 </body>
